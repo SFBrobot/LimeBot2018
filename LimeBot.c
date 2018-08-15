@@ -1,3 +1,12 @@
+void tank(int left, int right)
+{
+	
+}
+void arcade(int mov, int rot)
+{
+	
+}
+
 void pre_auton()
 {
 
