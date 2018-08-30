@@ -1,4 +1,4 @@
-#pragma config(Motor,  port1,           strafeBack,    tmotorVex393_HBridge, openLoop)
+#pragma config(Motor,  port1,           strafeBack,    tmotorVex393_HBridge, openLoop, reversed)
 #pragma config(Motor,  port2,           driveFR,       tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port3,           driveFL,       tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port4,            ,             tmotorVex393_MC29, openLoop)
@@ -20,6 +20,10 @@ void RDrive(int pwr)
 {
 	motor[driveBR] = motor[driveFR] = pwr;
 }
+void Strafe(int pwr)
+{
+	motor[strafeBack] = motor[strafeFront] = pwr;
+}
 
 // Auton functions
 void moveDegrees(int motorDegrees)
@@ -36,13 +40,14 @@ void strafeDegrees(int motorDegrees)
 }
 
 // Drive modes
-void tank(int left, int right)
+void tank(int left, int right, int strafe)
 {
 
 }
-void arcade(int mov, int rot)
+void arcade(int mov, int rot, int strafe)
 {
-
+	LDrive(mov + rot);
+	RDrive(mov - rot);
 }
 
 void auton()
@@ -63,6 +68,6 @@ task usercontrol()
 {
 	while(true)
 	{
-
+		arcade(vexRT[Ch2], vexRT[Ch1], vexRT[Ch4]);
 	}
 }
