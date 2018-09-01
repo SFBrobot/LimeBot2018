@@ -1,3 +1,4 @@
+#pragma config(I2C_Usage, I2C1, i2cSensors)
 #pragma config(Motor,  port1,           strafeBack,    tmotorVex393_HBridge, openLoop, reversed)
 #pragma config(Motor,  port2,           driveFR,       tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port3,           driveFL,       tmotorVex393_MC29, openLoop)
@@ -70,6 +71,6 @@ task usercontrol()
 {
 	while(true)
 	{
-		arcade(vexRT[Ch3], vexRT[Ch4], vexRT[Ch1]);
+		arcade(vexRT[Ch3], vexRT[Ch1], vexRT[Ch4]);
 	}
 }
