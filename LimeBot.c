@@ -48,6 +48,8 @@ void arcade(int mov, int rot, int strafe)
 {
 	LDrive(mov + rot);
 	RDrive(mov - rot);
+	motor[strafeBack] = (strafe - rot);
+	motor[strafeFront] = (strafe + rot);
 }
 
 void auton()
@@ -68,6 +70,6 @@ task usercontrol()
 {
 	while(true)
 	{
-		arcade(vexRT[Ch2], vexRT[Ch1], vexRT[Ch4]);
+		arcade(vexRT[Ch3], vexRT[Ch4], vexRT[Ch1]);
 	}
 }
