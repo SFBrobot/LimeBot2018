@@ -81,6 +81,7 @@ task usercontrol()
 {
 	while(true)
 	{
+		/*
 		if(SensorValue[bump] == 1)
 		{
 			while(SensorValue[bump] == 1)
@@ -109,5 +110,7 @@ task usercontrol()
 		{
 			tank(vexRT[Ch3], vexRT[Ch2], vexRT[Ch1]);
 		}
+		*/
+		arcade(vexRT[Ch3], vexRT[Ch1], vexRT[Ch4]);
 	}
 }
