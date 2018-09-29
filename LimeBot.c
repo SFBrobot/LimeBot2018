@@ -18,7 +18,9 @@
 
 #include "Vex_Competition_Includes.c"
 
-const float TICKS_PER_DEGREE = 1.0888889;
+const float TICKS_PER_DEGREE = (392.0/360.0);
+const float ERROR_MULTIPLIER = 2;
+const int ERROR_ACCEPTENCE = 25;
 
 //MAGIC
 int sign(int x)
@@ -46,9 +48,10 @@ void Strafe(int pwr)
 	motor[strafeBack] = pwr;
 	motor[strafeFront] = pwr;
 }
+
 void ResetAllI2CEncoders()
 {
-	nMotorEncoder[FRDriveIME] = nMotorEncoder[FLDriveIME] = nMotorEncoder[FStrafeIME] = nMotorEncoder[BStrafeIME] = 0;
+	nMotorEncoder[driveFR] = nMotorEncoder[driveFL] = nMotorEncoder[strafeBack] = nMotorEncoder[strafeFront] = 0;
 }
 
 // Auton functions
@@ -89,28 +92,70 @@ void moveDegrees(int motorDegrees)
 	}
 	//waits for .25 seconds to populate the IMEs
 	wait1Msec(250);
-	//Dont bother turning off the motors, we're just going to reset the values later in this function
+	//Dont bother turning off the motors, we're just going to reset the speeds later in this function
 	//LDrive(0);
 	//RDrive(0);
-	float difference = nMotorEncoder[FLDriveIME] - nMotorEncoder[FRDriveIME];
-	float leftPwr = (127 - (127 * (difference / 100)));
-	if(leftPwr > 127)
+	//left makes positive, right makes negitive
+	if(ticksToMove > 0)
 	{
-		leftPwr = 127;
+		while(nMotorEncoder[driveFL] <= ticksToMove && nMotorEncoder[driveFR] <= ticksToMove)
+		{
+			int temp = nMotorEncoder[driveFL] - nMotorEncoder[driveFR];
+			float difference;
+			if((sign(temp) == 1) && (temp >= ERROR_ACCEPTENCE))
+			{
+				//abs for contingincy where it starts out backwards, for some reason
+				difference = abs(nMotorEncoder[driveFR] / (nMotorEncoder[driveFL] * ERROR_MULTIPLIER));
+				RDrive(127);
+				LDrive(127 * difference);
+			}
+			else if((sign(temp) == -1) && (temp <= (-1 * ERROR_ACCEPTENCE)))
+			{
+				difference = nMotorEncoder[driveFL] / (nMotorEncoder[driveFR] * ERROR_MULTIPLIER);
+				LDrive(127);
+				RDrive(127 * difference);
+			}
+			else//if(sign(temp) == 0)
+			{
+				LDrive(127);
+				RDrive(127);
+			}
+		}
 	}
-	float rightPwr = (127 + (127 * (difference / 100)));
-	if(rightPwr > 127)
+	else
 	{
-		rightPwr = 127;
+		while(nMotorEncoder[driveFL] >= ticksToMove && nMotorEncoder[driveFR] >= ticksToMove)
+		{
+			int temp = nMotorEncoder[driveFL] - nMotorEncoder[driveFR];
+			float difference;
+			if((sign(temp) == 1) && (temp >= ERROR_ACCEPTENCE))
+			{
+				difference = abs(nMotorEncoder[driveFR] / (nMotorEncoder[driveFL] * ERROR_MULTIPLIER));
+				RDrive(-127);
+				LDrive(-127 * difference);
+			}
+			else if((sign(temp) == -1) && (temp <= (-1 * ERROR_ACCEPTENCE)))
+			{
+				difference = nMotorEncoder[driveFL] / (nMotorEncoder[driveFR] * ERROR_MULTIPLIER);
+				LDrive(-127);
+				RDrive((-127) * difference);
+			}
+			else//if(sign(temp) == 0)
+			{
+				LDrive(-127);
+				RDrive(-127);
+			}
+		}
 	}
-	LDrive(leftPwr);
-	RDrive(rightPwr);
-	while(nMotorEncoder[FLDriveIME] <= ticksToMove && nMotorEncoder[FRDriveIME] <= ticksToMove)
-	{
-		//wait with them on
-	}
+	LDrive(-1 * sign(ticksToMove) * 127);
+	RDrive(-1 * sign(ticksToMove) * 127);
+	wait1Msec(100);
 	LDrive(0);
 	RDrive(0);
+}
+void moveTurns(float turns)
+{
+	moveDegrees(round(turns * 360));
 }
 //turn right is positive
 //up to user to determine how many degrees of _motor rotation_ it will take to get 360 degrees of _robot rotation_
@@ -120,7 +165,7 @@ void rotDegrees(int motorDegrees)
 	int ticksToMove = motorDegrees * TICKS_PER_DEGREE;
 	LDrive(sign(motorDegrees) * 127);
 	RDrive(-sign(motorDegrees) * 127);
-	while(nMotorEncoder[FLDriveIME] <= ticksToMove && nMotorEncoder[FRDriveIME] <= ticksToMove)
+	while(nMotorEncoder[driveFL] <= ticksToMove && nMotorEncoder[driveFR] <= ticksToMove)
 	{
 
 	}
@@ -132,7 +177,7 @@ void strafeDegrees(int motorDegrees)
 {
 	int ticksToMove = motorDegrees * TICKS_PER_DEGREE;
 	Strafe(sign(motorDegrees) * 127);
-	while(nMotorEncoder[FStrafeIME] <= ticksToMove && nMotorEncoder[BStrafeIME] <= ticksToMove)
+	while(nMotorEncoder[strafeFront] <= ticksToMove && nMotorEncoder[strafeBack] <= ticksToMove)
 	{
 
 	}
@@ -173,37 +218,22 @@ task usercontrol()
 {
 	while(true)
 	{
-		/*
-		if(SensorValue[bump] == 1)
-		{
-			while(SensorValue[bump] == 1)
-			{
-
-			}
-			drive++;
-		}
-		if(drive>=4)
-		{
-			drive=0;
-		}
-		if(drive == 0)
-		{
-			arcade(vexRT[Ch3], vexRT[Ch1], vexRT[Ch4]);
-		}
-		else if(drive == 1)
-		{
-			arcade(vexRT[Ch2], vexRT[Ch1], vexRT[Ch4]);
-		}
-		else if(drive == 2)
-		{
-			arcade(vexRT[Ch2], vexRT[Ch4], vexRT[Ch1]);
-		}
-		else if(drive == 3)
-		{
-			tank(vexRT[Ch3], vexRT[Ch2], vexRT[Ch1]);
-		}
-		*/
 		arcade(vexRT[Ch3], vexRT[Ch1], vexRT[Ch4]);
-
+		if(vexRT[Btn5U])
+		{
+			while(vexRT[Btn5D])
+			{
+				//wait for it to be released
+			}
+			moveTurns(10);
+		}
+		if(vexRT[Btn5D])
+		{
+			while(vexRT[Btn5D])
+			{
+				//wait for it to be released
+			}
+			moveTurns(-10);
+		}
 	}
 }

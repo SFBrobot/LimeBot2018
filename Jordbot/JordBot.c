@@ -52,6 +52,7 @@ task usercontrol()
 {
 	while(true)
 	{
+		/*
 		//drive switching code
 		if(SensorValue[bump] == 1)
 		{
@@ -85,6 +86,8 @@ task usercontrol()
 		{
 			tank(vexRT[Ch3], vexRT[Ch2]);
 		}
+		*/
+		tank(vexRT[Ch3], vexRT[Ch2]);
 		//lift code
 		if(vexRT[Btn6U])
 		{
