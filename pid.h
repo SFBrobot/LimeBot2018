@@ -27,4 +27,4 @@ int targetSet(pid *inPID, int target);
 
 int pidUpdate(pid *inPID, int sensorVal, int time);
 
-bool getMtrPwr(pid *inPID);
+short getMtrPwr(pid *inPID);

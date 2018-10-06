@@ -25,8 +25,9 @@ void initializePID(pid *inPID, double kp, double ki, double kd, short threshold,
 //target: encoder value that you want to achive
 int targetSet(pid *inPID, int target)
 {
-	inPID->integ = 0;
-	return (inPID->targ) = target;
+	(inPID->integ) = 0;
+	(inPID->targ) = target;
+	return (inPID->targ);
 }
 
 //Updates the PID values
@@ -82,7 +83,7 @@ int pidUpdate(pid *inPID, int sensorVal, int time)
 
 //Gets the current motor output from the PID
 //why is this a bool?
-bool getMtrPwr(pid *inPID)
+short getMtrPwr(pid *inPID)
 {
   return (inPID->out);
 }

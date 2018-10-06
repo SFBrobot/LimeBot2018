@@ -1,10 +1,16 @@
 #pragma config(I2C_Usage, I2C1, i2cSensors)
 #pragma config(Sensor, dgtl1,  bump,           sensorTouch)
+#pragma config(Sensor, dgtl5,  autonGood,      sensorLEDtoVCC)
+#pragma config(Sensor, dgtl6,  confirmAuton,   sensorDigitalIn)
+#pragma config(Sensor, dgtl7,  autonBad,       sensorLEDtoVCC)
+#pragma config(Sensor, dgtl8,  dig0,           sensorDigitalIn)
+#pragma config(Sensor, dgtl10, dig1,           sensorDigitalIn)
+#pragma config(Sensor, dgtl12, dig2,           sensorDigitalIn)
 #pragma config(Sensor, I2C_1,  FRDriveIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  FLDriveIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_3,  FStrafeIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_4,  BStrafeIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
-#pragma config(Sensor, I2C_5,  ,               sensorQuadEncoderOnI2CPort,    , AutoAssign )
+#pragma config(Sensor, I2C_5,  Slingshot,      sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Motor,  port1,           strafeBack,    tmotorVex393_HBridge, openLoop, reversed, encoderPort, I2C_4)
 #pragma config(Motor,  port2,           driveFR,       tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_1)
 #pragma config(Motor,  port3,           driveFL,       tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
@@ -21,13 +27,20 @@
 #include "pid.c"
 #include "utils.c"
 
-const float TICKS_PER_DEGREE = (392.0/360.0);
+const float TICKS_PER_DEGREE_SPEED = (392.0/360.0);
+const float TICKS_PER_DEGREE_TORQUE = (627.2/360.0);
 const float ERROR_MULTIPLIER = 2;
 const int ERROR_ACCEPTENCE = 25;
 
+task autonSelection();
+task blinkRedLEDHalfSec();
+task blinkGreenLEDHalfSec();
+
 pid *slingPID;
 
-int drive = 0;
+int auton = 0;
+
+//int drive = 0;
 //int bumpSwitchState = 0;
 //int numberOfDriveModes = 4;
 
@@ -81,7 +94,7 @@ void moveDegrees(int motorDegrees)
 {
 	//resets the encoders in preperation for population
 	ResetDriveI2CEncoders();
-	int ticksToMove = round(motorDegrees * TICKS_PER_DEGREE);
+	int ticksToMove = round(motorDegrees * TICKS_PER_DEGREE_SPEED);
 	//turns motors on, returns if luser wants to rotate 0 degrees
 	if(ticksToMove > 0)
 	{
@@ -169,7 +182,7 @@ void moveTurns(float turns)
 //user aka me
 void rotDegrees(int motorDegrees)
 {
-	int ticksToMove = motorDegrees * TICKS_PER_DEGREE;
+	int ticksToMove = motorDegrees * TICKS_PER_DEGREE_SPEED;
 	LDrive(sign(motorDegrees) * 127);
 	RDrive(-sign(motorDegrees) * 127);
 	while(nMotorEncoder[driveFL] <= ticksToMove && nMotorEncoder[driveFR] <= ticksToMove)
@@ -182,7 +195,7 @@ void rotDegrees(int motorDegrees)
 //strafe right is positive
 void strafeDegrees(int motorDegrees)
 {
-	int ticksToMove = motorDegrees * TICKS_PER_DEGREE;
+	int ticksToMove = motorDegrees * TICKS_PER_DEGREE_SPEED;
 	Strafe(sign(motorDegrees) * 127);
 	while(nMotorEncoder[strafeFront] <= ticksToMove && nMotorEncoder[strafeBack] <= ticksToMove)
 	{
@@ -190,13 +203,12 @@ void strafeDegrees(int motorDegrees)
 	}
 	Strafe(0);
 }
-void shootLoader()
+void shootSlingshot()
 {
 	//assumes that the gear starts in "prime" position: gear teeth positioned just above engaging
 	//maybe can create something to spin it and see resistance?
 	ResetSlingshotI2CEncoder();
-	//FIXME TICKS_PER_DEGREE isn't correct for these motors
-	while(nMotorEncoder[slingWIME] <= (360 * TICKS_PER_DEGREE)
+	while(nMotorEncoder[slingWIME] <= (360 * TICKS_PER_DEGREE_TORQUE))
 	{
 		Slingshot(127);
 	}
@@ -219,45 +231,195 @@ void arcade(int mov, int rot, int strafe)
 	motor[strafeFront] = (strafe + rot);
 }
 
-void auton()
+void AutonRedNearFlag()
 {
-	/*
 
-	*/
+}
+void AutonBlueNearFlag()
+{
+
+}
+void AutonRedNearPost()
+{
+
+}
+void AutonBlueNearPost()
+{
+
 }
 
-
-
+bool autonHasBeenSelected = false;
+int prevLoopPinStatus;
 // VEX Functions/Tasks
 void pre_auton()
 {
+	startTask(autonSelection);
+}
+task autonSelection()
+{
+	//wait for the user to put in the select auton jumper clip and blink red LED
+	startTask(blinkRedLEDHalfSec);
+	while(SensorValue(confirmAuton) == 1)
+	{
 
+	}
+	prevLoopPinStatus = 0;
+	stopTask(blinkRedLEDHalfSec);
+	SensorValue(autonBad) = 0;
+	startTask(blinkGreenLEDHalfSec);
+	while(true)
+	{
+		//CHANGEME iff more autons are added (# of autons minus one)
+		if(SensorValue(confirmAuton) == 1 && prevLoopPinStatus == 0)
+		{
+			if(auton < 3)
+			{
+				stopTask(blinkGreenLEDHalfSec);
+				SensorValue(autonGood) = 1;
+				SensorValue(autonBad) = 0;
+				continue;
+			}
+			else
+			{
+				stopTask(blinkGreenLEDHalfSec);
+				SensorValue(autonBad) = 1;
+				SensorValue(autonGood) = 0;
+				continue;
+			}
+		}
+		else if(SensorValue(confirmAuton) == 0 && prevLoopPinStatus == 1)
+		{
+			SensorValue(autonBad) = 0;
+			startTask(blinkGreenLEDHalfSec);
+		}
+		else if(SensorValue(confirmAuton) == 1 && prevLoopPinStatus == 1)
+		{
+			continue;
+		}
+		//if no jumper pin in digital port 12
+		if(SensorValue(dig2) == 1)
+		{
+			//if no jumper in in digital port 10
+			if(SensorValue(dig1) == 1)
+			{
+				//if no jumper pin in digital port 8
+				if(SensorValue(dig0) == 1)
+				{
+					auton = 0;
+				}
+				//else if jumper pin in digital port 8
+				else
+				{
+					auton = 1;
+				}
+			}
+			//else if jumper pin in digital port 10
+			else
+			{
+				//if no jumper pin in digital port 8
+				if(SensorValue(dig0) == 1)
+				{
+					auton = 2;
+				}
+				//if jumper pin in digital port 8
+				else
+				{
+					auton = 3;
+				}
+			}
+		}
+		//else if jumper pin in digital port 12
+		else
+		{
+			//if no jumper in in digital port 10
+			if(SensorValue(dig1) == 1)
+			{
+				//if no jumper pin in digital port 8
+				if(SensorValue(dig0) == 1)
+				{
+					auton = 4;
+				}
+				//else if jumper in in digital port 8
+				else
+				{
+					auton = 5;
+				}
+			}
+			//else if jumper pin in digital port 10
+			else
+			{
+				//if no jumper pin in digital port 8
+				if(SensorValue(dig0) == 1)
+				{
+					auton = 6;
+				}
+				//if jumper pin in digital port 8
+				else
+				{
+					auton = 7;
+				}
+			}
+		}
+		prevLoopPinStatus = SensorValue(confirmAuton);
+	}
+}
+task blinkGreenLEDHalfSec()
+{
+	while(true)
+	{
+		SensorValue(autonGood) = 1;
+		wait1Msec(500);
+		SensorValue(autonGood) = 0;
+		wait1Msec(500);
+	}
+}
+task blinkRedLEDHalfSec()
+{
+	while(true)
+	{
+		SensorValue(autonBad) = 1;
+		wait1Msec(500);
+		SensorValue(autonBad) = 0;
+		wait1Msec(500);
+	}
 }
 task autonomous()
 {
+	stopTask(autonSelection);
+	//void initializePID(pid *inPID, double kp, double ki, double kd, short threshold, double integMax);
 	initializePID(slingPID, 1, 1, 1, 1, 1); //TODO set values
-	auton();
+	//defaults to RedNearFlag
+	switch(auton)
+	{
+		case 0:
+			AutonRedNearFlag();
+			break;
+		case 1:
+			AutonBlueNearFlag();
+			break;
+		case 2:
+			AutonRedNearPost();
+			break;
+		case 3:
+			AutonBlueNearPost();
+			break;
+		case 4:
+			break;
+		case 5:
+			break;
+		case 6:
+			break;
+		case 7:
+			break;
+		default:
+			AutonRedNearFlag();
+			break;
+	}
 }
 task usercontrol()
 {
 	while(true)
 	{
 		arcade(vexRT[Ch3], vexRT[Ch1], vexRT[Ch4]);
-		if(vexRT[Btn5U])
-		{
-			while(vexRT[Btn5D])
-			{
-				//wait for it to be released
-			}
-			moveTurns(10);
-		}
-		if(vexRT[Btn5D])
-		{
-			while(vexRT[Btn5D])
-			{
-				//wait for it to be released
-			}
-			moveTurns(-10);
-		}
 	}
 }
