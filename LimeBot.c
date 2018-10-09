@@ -10,7 +10,7 @@
 #pragma config(Sensor, I2C_2,  FLDriveIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_3,  FStrafeIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_4,  BStrafeIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
-#pragma config(Sensor, I2C_5,  Slingshot,      sensorQuadEncoderOnI2CPort,    , AutoAssign )
+#pragma config(Sensor, I2C_5,  SlingshotIME,   sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Motor,  port1,           strafeBack,    tmotorVex393_HBridge, openLoop, reversed, encoderPort, I2C_4)
 #pragma config(Motor,  port2,           driveFR,       tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_1)
 #pragma config(Motor,  port3,           driveFL,       tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
@@ -87,6 +87,9 @@ If you are using a 393 motor, the number of ticks per revolution [counted by the
 Current configuration:
 All drive motors: high speed
 Strafe: high speed
+Slingshot: Torque
+
+Wheels: 32.5cm circumfrence (all)
 */
 
 //Counted out of 360 degrees
@@ -112,7 +115,7 @@ void moveDegrees(int motorDegrees)
 	}
 	//waits for .25 seconds to populate the IMEs
 	wait1Msec(250);
-	//Dont bother turning off the motors, we're just going to reset the speeds later in this function
+	//Don't bother turning off the motors, we're just going to reset the speeds later in this function
 	//LDrive(0);
 	//RDrive(0);
 	//left makes positive, right makes negitive
@@ -233,19 +236,32 @@ void arcade(int mov, int rot, int strafe)
 
 void AutonRedNearFlag()
 {
-
+	moveTurns(-1);//move back into position to shoot flag
+	shootSlingshot();//shoot high (middle or top) flag
+	rotDegrees(90);//turn to the platform
+	moveTurns(4);//however many turns it takes to get up onto the platform
 }
 void AutonBlueNearFlag()
 {
-
+	//https://docs.google.com/drawings/d/17SoShb_IrFyIc0RGJsnIWTWYxXtZrZAFC1ZPVMn4pkw
+	moveTurns(-1);//move back into position to shoot flag
+	shootSlingshot();//shoot high (middle or top) flag
+	rotDegrees(-90);//turn to the platform
+	moveTurns(4);//however many turns it takes to get up onto the platform
 }
 void AutonRedNearPost()
 {
-
+	moveTurns(1);
+	shootSlingshot();
+	rotDegrees(90);
+	moveTurns(4);
 }
 void AutonBlueNearPost()
 {
-
+	moveTurns(1);
+	shootSlingshot();
+	rotDegrees(-90);
+	moveTurns(4);
 }
 
 bool autonHasBeenSelected = false;
@@ -269,7 +285,7 @@ task autonSelection()
 	startTask(blinkGreenLEDHalfSec);
 	while(true)
 	{
-		//CHANGEME iff more autons are added (# of autons minus one)
+		//CHANGEME if/f more autons are added (# of autons minus one)
 		if(SensorValue(confirmAuton) == 1 && prevLoopPinStatus == 0)
 		{
 			if(auton < 3)
