@@ -16,7 +16,7 @@
 
 #include "Vex_Competition_Includes.c"
 
-const float TICKS_PER_DEGREE_DRIVE = (_/360);
+//const float TICKS_PER_DEGREE_DRIVE = (_/360);
 
 int drive = 0;
 
@@ -85,6 +85,18 @@ task usercontrol()
 		else
 		{
 			FourBar(0);
+		}
+		if(vexRT[Btn5U])
+		{
+			Claw(127);
+		}
+		else if(vexRT[Btn5D])
+		{
+			Claw(-127);
+		}
+		else
+		{
+			Claw(0);
 		}
 	}
 }
