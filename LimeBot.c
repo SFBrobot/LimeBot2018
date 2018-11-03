@@ -8,7 +8,8 @@
 #pragma config(Sensor, dgtl12, dig2,           sensorDigitalIn)
 #pragma config(Sensor, I2C_1,  FRDriveIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  FLDriveIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
-#pragma config(Sensor, I2C_3,  SlingshotIME,   sensorQuadEncoderOnI2CPort,    , AutoAssign )
+#pragma config(Sensor, I2C_3,  SlingshotIME,   sensorNone)
+#pragma config(Motor,  port1,           slingMove,     tmotorVex393_HBridge, openLoop)
 #pragma config(Motor,  port2,           driveFR,       tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_1)
 #pragma config(Motor,  port3,           driveFL,       tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
 #pragma config(Motor,  port4,           slingWIME,     tmotorVex393_MC29, openLoop)
@@ -30,12 +31,13 @@ const float TICKS_PER_DEGREE_SPEED = (392.0/360.0);
 const float TICKS_PER_DEGREE_TORQUE = (627.2/360.0);
 const float ERROR_MULTIPLIER = 2;
 const int ERROR_ACCEPTENCE = 25;
+const int NUM_OF_PID_POINTS = 2;
 
 task autonSelection();
 task blinkRedLEDHalfSec();
 task blinkGreenLEDHalfSec();
 
-float targetPoint;
+float targetPoints[NUM_OF_PID_POINTS];
 
 int auton = 0;
 
@@ -55,38 +57,41 @@ void ResetSlingshotI2CEncoders()
 //PID Funcs
 void InitPID()
 {
-	targetPoint = 0;
+	for(int i = 0; i < NUM_OF_PID_POINTS; i++)
+	{
+		targetPoints[i] = 0;
+	}
 	ResetSlingshotI2CEncoders();
 }
-void setTargetPoint(bool go, int direction, int currentPoint)
+void setTargetPoint(bool go, int direction, int currentPoint, int targetPoint)
 {
 	if(go)
 	{
 		if(direction > 0)
 		{
-			targetPoint++;
+			targetPoints[targetPoint]++;
 		}
 		else if(direction < 0)
 		{
-			targetPoint--;
+			targetPoints[targetPoint]--;
 		}
-		if(targetPoint > currentPoint + MAX)
+		if(targetPoints[targetPoint] > currentPoint + MAX)
 		{
-			targetPoint = currentPoint + MAX;
+			targetPoints[targetPoint] = currentPoint + MAX;
 		}
-		else if(targetPoint < currentPoint - MAX)
+		else if(targetPoints[targetPoint] < currentPoint - MAX)
 		{
-			targetPoint = currentPoint - MAX;
+			targetPoints[targetPoint] = currentPoint - MAX;
 		}
 	}
 }
-int PID(int currentPoint)
+int PID(int currentPoint, int targetPoint)
 {
 	int pwr;
-	if(targetPoint > currentPoint - THRESHOLD
-		|| targetPoint < currentPoint + THRESHOLD)
+	if(targetPoints[targetPoint] > currentPoint - THRESHOLD
+		|| targetPoints[targetPoint] < currentPoint + THRESHOLD)
 	{
-		pwr = MULTIPLIER * (targetPoint - currentPoint);
+		pwr = MULTIPLIER * (targetPoints[targetPoint] - currentPoint);
 	}
 	if(pwr > 127)
 	{
@@ -128,7 +133,6 @@ If you are using a 393 motor, the number of ticks per revolution [counted by the
 /*
 Current configuration:
 All drive motors: high speed
-Strafe: high speed
 Slingshot: Torque
 
 Wheels: 32.5cm circumfrence (all)
@@ -465,12 +469,12 @@ task usercontrol()
 		arcade(vexRT[Ch3], vexRT[Ch1]);
 		if(vexRT[Btn6D])
 		{
-			setTargetPoint(true, 1, nMotorEncoder[slingWIME]);
+			setTargetPoint(true, 1, nMotorEncoder[slingWIME], 0);
 		}
 		else if(vexRT[Btn6U])
 		{
-			setTargetPoint(true, -1, nMotorEncoder[slingWIME]);
+			setTargetPoint(true, -1, nMotorEncoder[slingWIME], 0);
 		}
-		motor[slingWIME] = PID(nMotorEncoder[slingWIME]);
+		motor[slingWIME] = PID(nMotorEncoder[slingWIME], 0);
 	}
 }
