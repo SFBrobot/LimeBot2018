@@ -9,7 +9,7 @@
 #pragma config(Sensor, I2C_1,  FRDriveIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_2,  FLDriveIME,     sensorQuadEncoderOnI2CPort,    , AutoAssign )
 #pragma config(Sensor, I2C_3,  SlingshotIME,   sensorNone)
-#pragma config(Motor,  port1,           slingMove,     tmotorVex393_HBridge, openLoop)
+#pragma config(Motor,  port1,           slingLoader,   tmotorVex393_HBridge, openLoop)
 #pragma config(Motor,  port2,           driveFR,       tmotorVex393_MC29, openLoop, reversed, encoderPort, I2C_1)
 #pragma config(Motor,  port3,           driveFL,       tmotorVex393_MC29, openLoop, encoderPort, I2C_2)
 #pragma config(Motor,  port4,           slingWIME,     tmotorVex393_MC29, openLoop)
@@ -476,5 +476,14 @@ task usercontrol()
 			setTargetPoint(true, -1, nMotorEncoder[slingWIME], 0);
 		}
 		motor[slingWIME] = PID(nMotorEncoder[slingWIME], 0);
+		if(vexRT[Btn5D])
+		{
+			setTargetPoint(true, 1, nMotorEncoder[slingLoader], 1);
+		}
+		else if(vexRT[Btn5U])
+		{
+			setTargetPoint(true, -1, nMotorEncoder[slingLoader], 1);
+		}
+		motor[slingLoader] = PID(nMotorEncoder[slingLoader], 1);
 	}
 }
