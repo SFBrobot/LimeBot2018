@@ -1,0 +1,15 @@
+Digital Ports: 
+Port 1: If the pin is in, the robot will use Arcade Mode, if it is not, the robot will use Tank Mode
+Port 2: Nothing
+Port 3: Auton Selection 1
+Port 4: Auton Selection 2
+Port 5: Auton Selection 3
+Port 6-12: Nothing
+
+Auton Selection:
+
+For simple auton: No pins
+For Blue Flag auton: AS1 ON
+For Other Blue auton: AS2 ON
+For Red Flag auton: AS1 AND AS2 ON
+For Other Red auton: AS3 ON
